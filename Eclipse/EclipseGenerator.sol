@@ -7,7 +7,6 @@ import "./DataFetcher.sol";
 import "./SafeMath.sol";
 import "./Address.sol";
 import "./ReentrantGuard.sol";
-import "./IUniswapV2Router02.sol";
 import "./IERC20.sol";
 
 /** 
@@ -31,8 +30,6 @@ contract EclipseGenerator is ReentrancyGuard {
     address _parentProxy;
     // data fetcher
     DataFetcher immutable _fetcher;
-    // pancakeswap v2 router
-    IUniswapV2Router02 immutable _router;
     // master only functions
     modifier onlyMaster() {require(msg.sender == _master, 'Master Function'); _;}
     // koth tracking
@@ -48,7 +45,6 @@ contract EclipseGenerator is ReentrancyGuard {
     constructor() {
         _master = 0x8d2F3CA0e254e1786773078D69731d0c03fBc8DF;
         _fetcher = DataFetcher(0x2cd2664Ce5639e46c6a3125257361e01d0213657);
-        _router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
     }
     
     function lockProxy(address proxy) external onlyMaster {
@@ -75,39 +71,6 @@ contract EclipseGenerator is ReentrancyGuard {
         tokenToKOTH[_tokenToList] = address(hill);
         kothContracts.push(address(hill));
         emit KOTHCreated(address(hill), _tokenToList, _kothOwner);
-    }
-    
-    function buyToken(address token) external payable nonReentrant{
-        _buyToken(token, address(_router));
-    }
-    
-    function buyTokenCustomRouter(address token, address router) external payable nonReentrant {
-        _buyToken(token, router);
-    }
-    
-    function _buyToken(address token, address router) private {
-        require(tokenToKOTH[token] != address(0), 'Token Is Not Listed');
-        require(msg.value >= 10**9, 'Purchase Too Small');
-        bnbAccruedPerToken[token] = bnbAccruedPerToken[token].add(msg.value);
-        
-        IUniswapV2Router02 customRouter = IUniswapV2Router02(router);
-        address[] memory path = new address[](2);
-        path[0] = customRouter.WETH();
-        path[1] = token;
-        
-        uint256 tax = _fetcher.getTaxedSwapperAmount(token, msg.value);
-        uint256 swapAmount = msg.value.sub(tax);
-        
-        customRouter.swapExactETHForTokens{value:swapAmount}(
-            0,
-            path,
-            msg.sender,
-            block.timestamp.add(30)
-        );
-        if (tax > 0) {
-            (bool success,) = payable(_data.getFurnace()).call{value: tax}("");
-            require(success, 'BNB Transfer To Furnace Failure');
-        }
     }
     
     
