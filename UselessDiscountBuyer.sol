@@ -5,8 +5,9 @@ import "./Address.sol";
 import "./IERC20.sol";
 import "./SafeMath.sol";
 import "./IUniswapV2Router02.sol";
+import "./IDiscountBuyer.sol";
 
-contract UselessDiscountBuyer {
+contract UselessDiscountBuyer is IDiscountBuyer {
     
     using Address for address;
     using SafeMath for uint256;
@@ -68,11 +69,11 @@ contract UselessDiscountBuyer {
         path[1] = useless;
     }
     
-    function setReceiveForUser(address receiver) external {
+    function setReceiveForUser(address receiver) external override {
         receiveForUser[msg.sender] = receiver;
     }
     
-    function getReceiverForUser(address user) public view returns (address) {
+    function getReceiveForUser(address user) public view returns (address) {
         return receiveForUser[user] == address(0) ? user : receiveForUser[user];
     }
 
@@ -99,7 +100,7 @@ contract UselessDiscountBuyer {
         uint256 sendAmount = uselessReceived.sub(burnAmount);
         
         // receiver of useless
-        address receiver = getReceiverForUser(msg.sender);
+        address receiver = getReceiveForUser(msg.sender);
         
         // transfer Useless To Sender
         bool success = IERC20(useless).transfer(receiver, sendAmount);
