@@ -23,11 +23,11 @@ contract EclipseSwapper is ReentrancyGuard {
     }
 
     function buyToken(address token, address receiver) external payable nonReentrant{
-        _buyToken(token, _v2router);
+        _buyToken(token, receiver, _v2router);
     }
     
     function buyTokenCustomRouter(address token, address receiver, address router) external payable nonReentrant {
-        _buyToken(token, router);
+        _buyToken(token, receiver, router);
     }
     
     function _buyToken(address token, address receiver, address router) private {
