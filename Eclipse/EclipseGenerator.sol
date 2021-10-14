@@ -34,8 +34,13 @@ contract EclipseGenerator is ReentrancyGuard {
     modifier onlyMaster() {require(msg.sender == _master, 'Master Function'); _;}
     // koth tracking
     mapping ( address => bool ) isKOTHContract;
-    mapping ( address => address ) tokenToKOTH;
-    mapping ( address => uint256 ) bnbAccruedPerToken;
+    
+    struct EclipseLib {
+        address KOTH;
+        uint256 lastDecay;
+    }
+    
+    mapping ( address => EclipseLib ) eclipses;
     address[] kothContracts;
     
     // decay tracker
@@ -95,7 +100,7 @@ contract EclipseGenerator is ReentrancyGuard {
         decayHill.decay();
     }
     
-    function iterateDecay(uint256 iterations) external onlyMaster {
+    function iterateDecay(uint256 iterations) external {
         require(iterations <= kothContracts.length, 'Too Many Iterations');
         for (uint i = 0; i < iterations; i++) {
             if (decayIndex >= kothContracts.length) {
