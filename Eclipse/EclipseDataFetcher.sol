@@ -61,6 +61,10 @@ contract EclipseDataFetcher {
         listedTokens[token].isListed = true;
         listedTokens[token].swapperFee = swapperFee;
     }
+    
+    function isListed(address token) external view returns (bool) {
+        return listedTokens[token].isListed;
+    }
 
     function getFurnace() external view returns(address) {
         return _furnace;
