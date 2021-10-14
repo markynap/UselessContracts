@@ -42,7 +42,7 @@ contract TokenDiscountBuyer is IDiscountBuyer {
     modifier onlyOwner(){require(msg.sender == _master, 'Invalid Entry'); _;}
     
     // events
-    event BoughtAndReturnedtoken(address to, uint256 amounttoken);
+    event BoughtAndReturnedToken(address to, uint256 amounttoken);
     event UpdatedBNBPercentage(uint256 newPercent);
     event UpdatedFactor(uint256 newFactor);
     event UpdatedMinBNB(uint256 newMin);
@@ -111,7 +111,7 @@ contract TokenDiscountBuyer is IDiscountBuyer {
             bool successful = IERC20(token).transfer(_furnace, burnAmount);
             require(successful, 'Error Sending token To Furnace');
         }
-        emit BoughtAndReturnedtoken(receiver, sendAmount);
+        emit BoughtAndReturnedToken(receiver, sendAmount);
     }
     
     function purchaseToken(uint256 amount) internal returns (uint256) {
