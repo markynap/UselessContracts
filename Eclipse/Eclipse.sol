@@ -35,7 +35,6 @@ contract Eclipse is EclipseData, IEclipse, Proxyable {
     
     modifier isModerator() {require(canModerate[msg.sender], 'Only Moderator'); _; }
     modifier isTokenOwner() {require(msg.sender == _tokenOwner, 'Only Owner'); _; }
-    modifier isMaster() {require(_fetcher.isMaster(msg.sender), 'Only Master'); _; }
     
     constructor(address tokenOwner, address _token) {
         require(msg.sender == 0xf5f91867eBA4F7439997C6D90377557aA612fCF5);
@@ -70,17 +69,24 @@ contract Eclipse is EclipseData, IEclipse, Proxyable {
     ///////    MASTER FUNCTIONS    ///////////
     //////////////////////////////////////////
     
-    function decay() external override isMaster {
-        require(lastDecay + _fetcher.getDecayPeriod() <= block.number, 'Not Time To Decay');
+    function decay() external override {
+        if (lastDecay + _fetcher.getDecayPeriod() > block.number) return;
         lastDecay = block.number;
         uint256 bal = IERC20(_useless).balanceOf(address(this));
         uint256 decayFee = _fetcher.getDecayFee();
         uint256 minimum = _fetcher.getUselessMinimumToDecayFullBalance();
         uint256 takeBal = bal <= minimum ? bal : bal.div(decayFee);
         address furnace = _fetcher.getFurnace();
+        address rewardPot = _fetcher.uselessRewardPot();
+        uint256 rewardAmount = takeBal.mul(_fetcher.uselessRewardPotPercentage()).div(10**2);
+        takeBal = takeBal.sub(rewardAmount);
         bool success = IERC20(_useless).transfer(furnace, takeBal);
         require(success, 'Failure on Useless Transfer To Furnace');
-        emit Decay(takeBal);
+        if (rewardAmount > 0) {
+            success = IERC20(_useless).transfer(rewardPot, rewardAmount);
+            require(success, 'Failure on Useless Transfer To Furnace');
+        }
+        emit Decay(takeBal+rewardAmount);
     }
     
     
@@ -166,12 +172,6 @@ contract Eclipse is EclipseData, IEclipse, Proxyable {
         require(success, 'Failed Useless Purchase');
     }
     
-    receive() external payable {
-        if (!receiveDisabled) {
-            buyUseless(msg.value);
-        }
-    }
-    
     //////////////////////////////////////////
     ///////     READ FUNCTIONS     ///////////
     //////////////////////////////////////////
@@ -182,6 +182,12 @@ contract Eclipse is EclipseData, IEclipse, Proxyable {
     
     function getTokenRepresentative() external override view returns (address) {
         return _tokenRep;
+    }
+    
+    receive() external payable {
+        if (!receiveDisabled) {
+            buyUseless(msg.value);
+        }
     }
     
     // EVENTS
