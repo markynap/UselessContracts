@@ -15,10 +15,13 @@ contract EclipseDataFetcher {
     address public _furnace;
     address public _marketing;
     address _swapper;
-    
+    address public uselessRewardPot;
+   
+    uint256 public uselessRewardPotPercentage;
     uint256 _decayPeriod;
     uint256 _decayFee;
     uint256 _uselessMinimumToDecayFullBalance;
+    uint256 public creationCost;
 
     struct ListedToken {
         bool isListed;
@@ -41,6 +44,18 @@ contract EclipseDataFetcher {
 
     function setMasterPriviledge(address user, bool userIsMaster) external onlyMaster {
         _isMaster[user] = userIsMaster;
+    }
+    
+    function setUselessRewardPot(address newPot) external onlyMaster {
+        uselessRewardPot = newPot;
+    }
+    
+    function setEclipseCreationCost(uint256 newCost) external onlyMaster {
+        creationCost = newCost;
+    }
+    
+    function setUselessRewardPotPercentage(uint256 newPercentage) external onlyMaster {
+        uselessRewardPotPercentage = newPercentage;
     }
 
     function setSwapperFeeForToken(address token, uint256 fee) external onlyMaster {
