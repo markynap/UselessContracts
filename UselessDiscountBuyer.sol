@@ -7,15 +7,15 @@ import "./SafeMath.sol";
 import "./IUniswapV2Router02.sol";
 import "./IDiscountBuyer.sol";
 
-contract UselessDiscountBuyer is IDiscountBuyer {
+contract tokenDiscountBuyer is IDiscountBuyer {
     
     using Address for address;
     using SafeMath for uint256;
 
     // constants
-    uint256 public constant unit = 10**18;
-    uint256 public constant _denominator = 10**5;
-    address constant useless = 0x2cd2664Ce5639e46c6a3125257361e01d0213657;
+    uint256 constant unit = 10**18;
+    uint256 constant _denominator = 10**5;
+    address constant token = 0x2cd2664Ce5639e46c6a3125257361e01d0213657;
     
     // fees
     uint256 public _startingFee;
@@ -42,7 +42,7 @@ contract UselessDiscountBuyer is IDiscountBuyer {
     modifier onlyOwner(){require(msg.sender == _master, 'Invalid Entry'); _;}
     
     // events
-    event BoughtAndReturnedUseless(address to, uint256 amountUseless);
+    event BoughtAndReturnedtoken(address to, uint256 amounttoken);
     event UpdatedBNBPercentage(uint256 newPercent);
     event UpdatedFactor(uint256 newFactor);
     event UpdatedMinBNB(uint256 newMin);
@@ -66,7 +66,7 @@ contract UselessDiscountBuyer is IDiscountBuyer {
         _router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
         path = new address[](2);
         path[0] = _router.WETH();
-        path[1] = useless;
+        path[1] = token;
     }
     
     function setReceiveForUser(address receiver) external override {
@@ -86,8 +86,8 @@ contract UselessDiscountBuyer is IDiscountBuyer {
         uint256 furnaceAmount = msg.value.mul(_furnaceFee).div(_denominator);
         uint256 swapAmount = msg.value.sub(furnaceAmount);
         
-        // purchase Useless
-        uint256 uselessReceived = purchaseToken(swapAmount);
+        // purchase token
+        uint256 tokenReceived = purchaseToken(swapAmount);
         
         // send bnb to distributor
         if (furnaceAmount > 0) {
@@ -96,33 +96,33 @@ contract UselessDiscountBuyer is IDiscountBuyer {
         }
         
         // portion amount for sender
-        uint256 burnAmount = uselessReceived.mul(_burnFee).div(_denominator);
-        uint256 sendAmount = uselessReceived.sub(burnAmount);
+        uint256 burnAmount = tokenReceived.mul(_burnFee).div(_denominator);
+        uint256 sendAmount = tokenReceived.sub(burnAmount);
         
-        // receiver of useless
+        // receiver of token
         address receiver = getReceiveForUser(msg.sender);
         
-        // transfer Useless To Sender
-        bool success = IERC20(useless).transfer(receiver, sendAmount);
-        require(success, 'Error on Vault Transfer');
+        // transfer token To Sender
+        bool success = IERC20(token).transfer(receiver, sendAmount);
+        require(success, 'Error on token Transfer');
         
-        // Send Useless Balance To Furnace
+        // Send token Balance To Furnace
         if (burnAmount > 0) {
-            bool successful = IERC20(useless).transfer(_furnace, burnAmount);
-            require(successful, 'Error Sending Useless To Furnace');
+            bool successful = IERC20(token).transfer(_furnace, burnAmount);
+            require(successful, 'Error Sending token To Furnace');
         }
-        emit BoughtAndReturnedUseless(receiver, sendAmount);
+        emit BoughtAndReturnedtoken(receiver, sendAmount);
     }
     
     function purchaseToken(uint256 amount) internal returns (uint256) {
-        uint256 uselessBefore = IERC20(useless).balanceOf(address(this));
+        uint256 tokenBefore = IERC20(token).balanceOf(address(this));
         _router.swapExactETHForTokens{value: amount}(
             0,
             path,
             address(this),
             block.timestamp.add(30)
         );
-        return IERC20(useless).balanceOf(address(this)).sub(uselessBefore);
+        return IERC20(token).balanceOf(address(this)).sub(tokenBefore);
     }
     
     function calculateFees(uint256 amount) public view returns (uint256, uint256) {
@@ -179,9 +179,9 @@ contract UselessDiscountBuyer is IDiscountBuyer {
         (s,) = payable(_master).call{value: am}("");
     }
 
-    function withdrawToken(address token) external onlyOwner {
-        uint256 bal = IERC20(token).balanceOf(address(this));
-        IERC20(token).transfer(_master, bal);
+    function withdrawToken(address _token) external onlyOwner {
+        uint256 bal = IERC20(_token).balanceOf(address(this));
+        IERC20(_token).transfer(_master, bal);
     }
 
     function transferOwnership(address newMaster) external onlyOwner {
