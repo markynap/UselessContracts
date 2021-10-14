@@ -33,10 +33,16 @@ contract EclipseGenerator is ReentrancyGuard {
     // master only functions
     modifier onlyMaster() {require(msg.sender == _master, 'Master Function'); _;}
     // koth tracking
-    mapping ( address => bool ) isKOTHContract;
+    struct KOTH {
+        bool isVerified;
+        address tokenRepresentative;
+    }
     
-    mapping ( address => address ) tokenToKOTH;
-    address[] kothContracts;
+    mapping ( address => KOTH ) eclipseContracts;
+    
+    mapping ( address => address ) tokenToEclipse;
+    
+    address[] eclipseContractList;
     
     // decay tracker
     uint256 public decayIndex;
@@ -67,9 +73,10 @@ contract EclipseGenerator is ReentrancyGuard {
         // initialize proxy
         IEclipse(payable(hill)).bind(_kothOwner, _tokenToList);
         // add to database
-        isKOTHContract[address(hill)] = true;
-        tokenToKOTH[_tokenToList] = address(hill);
-        kothContracts.push(address(hill));
+        eclipseContracts[address(hill)].isVerified = true;
+        eclipseContracts[address(hill)].tokenRepresentative = _tokenToList;
+        tokenToEclipse[_tokenToList] = address(hill);
+        eclipseContractList.push(address(hill));
         emit KOTHCreated(address(hill), _tokenToList, _kothOwner);
     }
     
@@ -86,7 +93,7 @@ contract EclipseGenerator is ReentrancyGuard {
     }
     
     function decayByToken(address _token) external onlyMaster returns (bool) {
-        IEclipse decayHill = IEclipse(payable(tokenToKOTH[_token]));
+        IEclipse decayHill = IEclipse(payable(tokenToEclipse[_token]));
         return decayHill.decay();
     }
     
@@ -96,27 +103,36 @@ contract EclipseGenerator is ReentrancyGuard {
     }
     
     function iterateDecay(uint256 iterations) external {
-        require(iterations <= kothContracts.length, 'Too Many Iterations');
+        require(iterations <= eclipseContractList.length, 'Too Many Iterations');
         for (uint i = 0; i < iterations; i++) {
-            if (decayIndex >= kothContracts.length) {
+            if (decayIndex >= eclipseContractList.length) {
                 decayIndex = 0;
             }
-            IEclipse(payable(kothContracts[decayIndex])).decay();
+            IEclipse(payable(eclipseContractList[decayIndex])).decay();
             decayIndex++;
         }
     }
     
     function deleteKOTH(address koth) external onlyMaster {
-        require(isKOTHContract[koth], 'Not KOTH Contract');
-        for (uint i = 0; i < kothContracts.length; i++) {
-            if (koth == kothContracts[i]) {
-                kothContracts[i] = kothContracts[kothContracts.length - 1];
+        require(eclipseContracts[koth].isVerified, 'Not KOTH Contract');
+        _deleteKOTH(eclipseContracts[koth].tokenRepresentative);
+    }
+    
+    function deleteKOTHByToken(address token) external onlyMaster {
+        require(eclipseContracts[tokenToEclipse[token]].isVerified, 'Not KOTH Contract');
+        _deleteKOTH(token);
+    }
+    
+    function _deleteKOTH(address token) private {
+        for (uint i = 0; i < eclipseContractList.length; i++) {
+            if (koth == eclipseContractList[i]) {
+                eclipseContractList[i] = eclipseContractList[eclipseContractList.length - 1];
                 break;
             }
         }
-        kothContracts.pop();
-        delete isKOTHContract[koth];
-        delete tokenToKOTH[IEclipse(payable(koth)).getTokenRepresentative()];
+        eclipseContractList.pop();
+        delete eclipseContracts[koth];
+        delete tokenToEclipse[token];
     }
     
     function pullRevenue() external onlyMaster {
@@ -138,44 +154,42 @@ contract EclipseGenerator is ReentrancyGuard {
     function kingOfTheHill() external view returns (address) {
         uint256 max = 0;
         address king;
-        for (uint i = 0; i < kothContracts.length; i++) {
-            uint256 amount = IERC20(_useless).balanceOf(kothContracts[i]);
+        for (uint i = 0; i < eclipseContractList.length; i++) {
+            uint256 amount = IERC20(_useless).balanceOf(eclipseContractList[i]);
             if (amount > max) {
                 max = amount;
-                king = kothContracts[i];
+                king = eclipseContractList[i];
             }
         }
-        return king == address(0) ? king : IEclipse(payable(king)).getTokenRepresentative();
+        return king == address(0) ? king : eclipseContracts[king].tokenRepresentative;
     }
     
     function getUselessInKOTH(address _token) external view returns(uint256) {
-        if (tokenToKOTH[_token] == address(0)) return 0;
-        return IERC20(_useless).balanceOf(tokenToKOTH[_token]);
+        if (tokenToEclipse[_token] == address(0)) return 0;
+        return IERC20(_useless).balanceOf(tokenToEclipse[_token]);
     }
     
     function getKOTHForToken(address _token) external view returns(address) {
-        return tokenToKOTH[_token];
+        return tokenToEclipse[_token];
     }
     
-    function getIsKOTHContract(address _contract) external view returns(bool) {
-        return isKOTHContract[_contract];
+    function getTokenForKOTH(address _KOTH) external view returns(address) {
+        return eclipseContracts[_KOTH].tokenRepresentative;
+    }
+    
+    function isEclipseContractVerified(address _contract) external view returns(bool) {
+        return eclipseContracts[_contract].isVerified;
     }
     
     function isTokenListed(address token) external view returns(bool) {
-        return tokenToKOTH[token] != address(0);
+        return tokenToEclipse[token] != address(0);
     }
     
-    function getKOTHContracts() external view returns (address[] memory) {
-        return kothContracts;
+    function geteclipseContractList() external view returns (address[] memory) {
+        return eclipseContractList;
     }
     
-    function getBNBAccruedPerToken(address token) external view returns (uint256) {
-        return bnbAccruedPerToken[token];
-    }
-    
-    receive() external payable {
-        
-    }
+    receive() external payable {}
     
     /**
      * @notice Check if an address is a contract
