@@ -23,9 +23,11 @@ contract EclipseDataFetcher {
     struct ListedToken {
         bool isListed;
         uint256 swapperFee;
+        uint256 listedIndex;
     }
 
     mapping (address => ListedToken) listedTokens;
+    address[] listed;
 
     mapping (address => bool) _isMaster;
     modifier onlyMaster(){require(_isMaster[msg.sender], 'Only Master'); _;}
@@ -56,10 +58,19 @@ contract EclipseDataFetcher {
     function listTokenCustomSwapperFee(address token, uint256 swapperFee) external onlyMaster {
         _listToken(token, swapperFee);
     }
+    
+    function delistToken(address token) external onlyMaster {
+        listed[listedTokens[token].listedIndex] = listed[listed.length-1];
+        listedTokens[listed[listed.length-1]].listedIndex = listedTokens[token].listedIndex;
+        listed.pop();
+        delete listedTokens[token];
+    }
 
     function _listToken(address token, uint256 swapperFee) private {
         listedTokens[token].isListed = true;
         listedTokens[token].swapperFee = swapperFee;
+        listedTokens[token].listedIndex = listed.length;
+        listed.push(token);
     }
     
     function isListed(address token) external view returns (bool) {
@@ -92,6 +103,10 @@ contract EclipseDataFetcher {
     
     function getSwapper() public view returns (address) {
         return _swapper;
+    }
+    
+    function getListedTokens() public view returns (address[] memory) {
+        return listed;
     }
 
     function getSwapperFeeForToken(address token) public view returns(uint256) {
