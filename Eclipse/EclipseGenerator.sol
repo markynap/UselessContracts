@@ -3,7 +3,7 @@ pragma solidity 0.8.4;
 
 import "./IEclipse.sol";
 import "./Proxyable.sol";
-import "./DataFetcher.sol";
+import "./EclipseDataFetcher.sol";
 import "./SafeMath.sol";
 import "./Address.sol";
 import "./ReentrantGuard.sol";
@@ -12,8 +12,8 @@ import "./IERC20.sol";
 /** 
  * 
  * King Of The Hill Contract Generator
- * Generates Proxy KOTH Contracts For Specified Token Projects
- * Costs A Specified Amount To Have KOTH Created and Swapper Unlocked
+ * Generates Proxy Eclipse Contracts For Specified Token Projects
+ * Costs A Specified Amount To Have Eclipse Created and Swapper Unlocked
  * Developed by Markymark (DeFi Mark)
  * 
  */ 
@@ -32,14 +32,15 @@ contract EclipseGenerator is ReentrancyGuard {
     EclipseDataFetcher immutable _fetcher;
     // master only functions
     modifier onlyMaster() {require(msg.sender == _master, 'Master Function'); _;}
-    // koth tracking
-    struct KOTH {
+    
+    // eclipse data
+    struct EclipseLib {
         bool isVerified;
         address tokenRepresentative;
     }
     
     // eclipse => isVerified, tokenRepresentative
-    mapping ( address => KOTH ) eclipseContracts;
+    mapping ( address => EclipseLib ) eclipseContracts;
     
     // Token => Eclipse
     mapping ( address => address ) tokenToEclipse;
@@ -50,6 +51,7 @@ contract EclipseGenerator is ReentrancyGuard {
     // decay tracker
     uint256 public decayIndex;
     
+    // percentage for furnace
     uint256 public furnacePercent;
     
     // initialize
@@ -70,21 +72,21 @@ contract EclipseGenerator is ReentrancyGuard {
     //////////////////////////////////////////
     
     
-    function createKOTH(address _kothOwner, address _tokenToList) external payable nonReentrant {
+    function createEclipse(address _EclipseOwner, address _tokenToList) external payable nonReentrant {
         require(!_isContract(msg.sender) && tx.origin == msg.sender, 'No Proxies Allowed');
-        uint256 cost = _fetcher.getCreationCost();
+        uint256 cost = _fetcher.creationCost();
         require(msg.value >= cost, 'Cost Not Met');
         // create proxy
         address hill = Proxyable(payable(_parentProxy)).createProxy();
         // initialize proxy
-        IEclipse(payable(hill)).bind(_kothOwner, _tokenToList);
+        IEclipse(payable(hill)).bind(_EclipseOwner, _tokenToList);
         // add to database
         eclipseContracts[address(hill)].isVerified = true;
         eclipseContracts[address(hill)].tokenRepresentative = _tokenToList;
         tokenToEclipse[_tokenToList] = address(hill);
         eclipseContractList.push(address(hill));
         _withdraw();
-        emit KOTHCreated(address(hill), _tokenToList, _kothOwner);
+        emit EclipseCreated(address(hill), _tokenToList, _EclipseOwner);
     }
     
     function iterateDecay(uint256 iterations) external {
@@ -109,22 +111,26 @@ contract EclipseGenerator is ReentrancyGuard {
         emit TransferOwnership(newOwner);
     }
     
-    function decayByToken(address _token) external onlyMaster returns (bool) {
-        return _decay(tokenToEclipse[_token]);
+    function decayByToken(address _token) external onlyMaster {
+        _decay(tokenToEclipse[_token]);
     }
     
-    function decayByEclipse(address _Eclipse) external onlyMaster returns (bool) {
-        return _decay(_Eclipse);
+    function decayByEclipse(address _Eclipse) external onlyMaster {
+        _decay(_Eclipse);
     }
     
-    function deleteEclipse(address koth) external onlyMaster {
-        require(eclipseContracts[koth].isVerified, 'Not KOTH Contract');
-        _deleteKOTH(eclipseContracts[koth].tokenRepresentative);
+    function setFurnacePercent(uint256 newPercent) external onlyMaster {
+        furnacePercent = newPercent;
+    }
+    
+    function deleteEclipse(address eclipse) external onlyMaster {
+        require(eclipseContracts[eclipse].isVerified, 'Not Eclipse Contract');
+        _deleteEclipse(eclipseContracts[eclipse].tokenRepresentative);
     }
     
     function deleteEclipseByToken(address token) external onlyMaster {
-        require(eclipseContracts[tokenToEclipse[token]].isVerified, 'Not KOTH Contract');
-        _deleteKOTH(token);
+        require(eclipseContracts[tokenToEclipse[token]].isVerified, 'Not Eclipse Contract');
+        _deleteEclipse(token);
     }
     
     function pullRevenue() external onlyMaster {
@@ -143,19 +149,19 @@ contract EclipseGenerator is ReentrancyGuard {
     //////////////////////////////////////////
     
     
-    function _decay(address eclipse) internal returns(bool){
-        return IEclipse(payable(eclipse)).decay();
+    function _decay(address eclipse) internal {
+        IEclipse(payable(eclipse)).decay();
     }
     
-    function _deleteKOTH(address token) internal {
+    function _deleteEclipse(address token) internal {
         for (uint i = 0; i < eclipseContractList.length; i++) {
-            if (koth == eclipseContractList[i]) {
+            if (tokenToEclipse[token] == eclipseContractList[i]) {
                 eclipseContractList[i] = eclipseContractList[eclipseContractList.length - 1];
                 break;
             }
         }
         eclipseContractList.pop();
-        delete eclipseContracts[koth];
+        delete eclipseContracts[tokenToEclipse[token]];
         delete tokenToEclipse[token];
     }
     
@@ -163,7 +169,7 @@ contract EclipseGenerator is ReentrancyGuard {
         address receiver = _fetcher.getMarketing();
         address furnace = _fetcher.getFurnace();
         
-        uint256 amountFurnace = address(this).balance.div(2);
+        uint256 amountFurnace = address(this).balance.mul(furnacePercent).div(10**2);
         uint256 receiverAmount = address(this).balance.sub(amountFurnace); 
         
         if (address(this).balance > 100) {
@@ -192,17 +198,17 @@ contract EclipseGenerator is ReentrancyGuard {
         return king == address(0) ? king : eclipseContracts[king].tokenRepresentative;
     }
     
-    function getUselessInKOTH(address _token) external view returns(uint256) {
+    function getUselessInEclipse(address _token) external view returns(uint256) {
         if (tokenToEclipse[_token] == address(0)) return 0;
         return IERC20(_useless).balanceOf(tokenToEclipse[_token]);
     }
     
-    function getKOTHForToken(address _token) external view returns(address) {
+    function getEclipseForToken(address _token) external view returns(address) {
         return tokenToEclipse[_token];
     }
     
-    function getTokenForKOTH(address _KOTH) external view returns(address) {
-        return eclipseContracts[_KOTH].tokenRepresentative;
+    function getTokenForEclipse(address _eclipse) external view returns(address) {
+        return eclipseContracts[_eclipse].tokenRepresentative;
     }
     
     function isEclipseContractVerified(address _contract) external view returns(bool) {
@@ -235,7 +241,7 @@ contract EclipseGenerator is ReentrancyGuard {
     //////////////////////////////////////////
     
     
-    event KOTHCreated(address KOTH, address tokenListed, address kothLister);
+    event EclipseCreated(address Eclipse, address tokenListed, address eclipseLister);
     event TransferOwnership(address newOwner);
 
 }
