@@ -22,15 +22,15 @@ contract EclipseSwapper is ReentrancyGuard {
         _master = msg.sender;
     }
 
-    function buyToken(address token) external payable nonReentrant{
+    function buyToken(address token, address receiver) external payable nonReentrant{
         _buyToken(token, _v2router);
     }
     
-    function buyTokenCustomRouter(address token, address router) external payable nonReentrant {
+    function buyTokenCustomRouter(address token, address receiver, address router) external payable nonReentrant {
         _buyToken(token, router);
     }
     
-    function _buyToken(address token, address router) private {
+    function _buyToken(address token, address receiver, address router) private {
         require(msg.value >= 10**9, 'Purchase Too Small');
         bnbPerToken[token] = bnbPerToken[token].add(msg.value);
         
@@ -47,7 +47,7 @@ contract EclipseSwapper is ReentrancyGuard {
         customRouter.swapExactETHForTokens{value:swapAmount}(
             0,
             path,
-            msg.sender,
+            receiver,
             block.timestamp.add(30)
         );
         if (tax > 0) {
