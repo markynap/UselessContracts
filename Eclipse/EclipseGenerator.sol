@@ -97,13 +97,11 @@ contract EclipseGenerator is ReentrancyGuard {
     
     function iterateDecay(uint256 iterations) external onlyMaster {
         require(iterations <= kothContracts.length, 'Too Many Iterations');
-        IEclipse decayHill;
         for (uint i = 0; i < iterations; i++) {
             if (decayIndex >= kothContracts.length) {
                 decayIndex = 0;
             }
-            decayHill = IEclipse(payable(kothContracts[decayIndex]));
-            try decayHill.decay() {} catch {}
+            IEclipse(payable(kothContracts[decayIndex])).decay();
             decayIndex++;
         }
     }
@@ -117,8 +115,8 @@ contract EclipseGenerator is ReentrancyGuard {
             }
         }
         kothContracts.pop();
-        isKOTHContract[koth] = false;
-        tokenToKOTH[IEclipse(payable(koth)).getTokenRepresentative()] = address(0);
+        delete isKOTHContract[koth];
+        delete tokenToKOTH[IEclipse(payable(koth)).getTokenRepresentative()];
     }
     
     function pullRevenue() external onlyMaster {
