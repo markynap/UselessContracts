@@ -35,12 +35,7 @@ contract EclipseGenerator is ReentrancyGuard {
     // koth tracking
     mapping ( address => bool ) isKOTHContract;
     
-    struct EclipseLib {
-        address KOTH;
-        uint256 lastDecay;
-    }
-    
-    mapping ( address => EclipseLib ) eclipses;
+    mapping ( address => address ) tokenToKOTH;
     address[] kothContracts;
     
     // decay tracker
