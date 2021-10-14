@@ -85,14 +85,14 @@ contract EclipseGenerator is ReentrancyGuard {
         emit TransferOwnership(newOwner);
     }
     
-    function decayByToken(address _token) external onlyMaster {
+    function decayByToken(address _token) external onlyMaster returns (bool) {
         IEclipse decayHill = IEclipse(payable(tokenToKOTH[_token]));
-        decayHill.decay();
+        return decayHill.decay();
     }
     
-    function decayByKOTH(address _KOTH) external onlyMaster {
+    function decayByKOTH(address _KOTH) external onlyMaster returns (bool) {
         IEclipse decayHill = IEclipse(payable(_KOTH));
-        decayHill.decay();
+        return decayHill.decay();
     }
     
     function iterateDecay(uint256 iterations) external {
