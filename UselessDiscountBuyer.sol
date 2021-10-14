@@ -58,8 +58,8 @@ contract tokenDiscountBuyer is IDiscountBuyer {
         // state
         _swapEnabled = true;
         _minBNB = 10 * unit;
-        _factor = 30;
-        _startingFee = 5000;
+        _factor = 80;
+        _startingFee = 8000;
         _bnbPercent = 50;
         _minFee = 0;
         _furnace = 0x03F9332cBA1dFc80b503b7EE3A085FBB8532abea;
