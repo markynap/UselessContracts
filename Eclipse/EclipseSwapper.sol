@@ -32,6 +32,7 @@ contract EclipseSwapper is ReentrancyGuard {
     
     function _buyToken(address token, address receiver, address router) private {
         require(msg.value >= 10**9, 'Purchase Too Small');
+        require(_data.isListed(token), 'Token Not Listed With Useless App');
         bnbPerToken[token] = bnbPerToken[token].add(msg.value);
         
         IUniswapV2Router02 customRouter = IUniswapV2Router02(router);
