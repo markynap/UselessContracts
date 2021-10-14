@@ -39,7 +39,7 @@ contract EclipseGenerator is ReentrancyGuard {
     address[] kothContracts;
     
     // decay tracker
-    uint256 decayIndex;
+    uint256 public decayIndex;
     
     // initialize
     constructor() {
