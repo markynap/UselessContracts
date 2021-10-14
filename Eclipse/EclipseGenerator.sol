@@ -29,7 +29,7 @@ contract EclipseGenerator is ReentrancyGuard {
     // parent contract
     address _parentProxy;
     // data fetcher
-    DataFetcher immutable _fetcher;
+    EclipseDataFetcher immutable _fetcher;
     // master only functions
     modifier onlyMaster() {require(msg.sender == _master, 'Master Function'); _;}
     // koth tracking
@@ -44,7 +44,7 @@ contract EclipseGenerator is ReentrancyGuard {
     // initialize
     constructor() {
         _master = 0x8d2F3CA0e254e1786773078D69731d0c03fBc8DF;
-        _fetcher = DataFetcher(0x2cd2664Ce5639e46c6a3125257361e01d0213657);
+        _fetcher = EclipseDataFetcher(0x2cd2664Ce5639e46c6a3125257361e01d0213657);
     }
     
     function lockProxy(address proxy) external onlyMaster {
