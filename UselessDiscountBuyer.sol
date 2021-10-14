@@ -7,7 +7,7 @@ import "./SafeMath.sol";
 import "./IUniswapV2Router02.sol";
 import "./IDiscountBuyer.sol";
 
-contract tokenDiscountBuyer is IDiscountBuyer {
+contract TokenDiscountBuyer is IDiscountBuyer {
     
     using Address for address;
     using SafeMath for uint256;
