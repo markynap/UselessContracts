@@ -54,9 +54,9 @@ contract Eclipse is EclipseData, IEclipse, Proxyable {
     
     function decay() external override {
         if (lastDecay + _fetcher.getDecayPeriod() > block.number) return;
-        lastDecay = block.number;
         uint256 bal = IERC20(_useless).balanceOf(address(this));
         if (bal == 0) { return; }
+        lastDecay = block.number;
         uint256 decayFee = _fetcher.getDecayFee();
         uint256 minimum = _fetcher.getUselessMinimumToDecayFullBalance();
         uint256 takeBal = bal <= minimum ? bal : bal.div(decayFee);
@@ -64,8 +64,10 @@ contract Eclipse is EclipseData, IEclipse, Proxyable {
         address rewardPot = _fetcher.uselessRewardPot();
         uint256 rewardAmount = takeBal.mul(_fetcher.uselessRewardPotPercentage()).div(10**2);
         takeBal = takeBal.sub(rewardAmount);
-        bool success = IERC20(_useless).transfer(furnace, takeBal);
-        require(success, 'Failure on Useless Transfer To Furnace');
+        if (takeBal > 0) {
+            bool success = IERC20(_useless).transfer(furnace, takeBal);
+            require(success, 'Failure on Useless Transfer To Furnace');
+        }
         if (rewardAmount > 0) {
             success = IERC20(_useless).transfer(rewardPot, rewardAmount);
             require(success, 'Failure on Useless Transfer To Furnace');
@@ -78,23 +80,12 @@ contract Eclipse is EclipseData, IEclipse, Proxyable {
     ///////   MODERATOR FUNCTIONS  ///////////
     //////////////////////////////////////////
     
-    
-    function liquidateToken(address token) external {
-        require(token != _useless, 'Cannot Sell USELESS Tokens');
-        liquidate(token, address(_pcsRouter));
-    }
-    
-    function liquidateTokenCustomRouter(address token, address router) external {
+    function liquidateToken(address token, address router) external {
         require(token != _useless, 'Cannot Sell USELESS Tokens');
         liquidate(token, router);
     }
     
-    function swapTokenForUseless(address token) external {
-        require(token != _useless, 'Cannot Sell USELESS Tokens');
-        _swapTokenForUseless(token, _pcsRouter);
-    }
-    
-    function swapTokenForUselessCustomRouter(address token, address router) external {
+    function swapTokenForUseless(address token, address router) external {
         require(token != _useless, 'Cannot Sell USELESS Tokens');
         _swapTokenForUseless(token, router);
     }
@@ -179,7 +170,6 @@ contract Eclipse is EclipseData, IEclipse, Proxyable {
     }
     
     // EVENTS
-    event SetModerator(address moderator, bool canModerate);
     event Decay(uint256 numUseless);
     
 }
