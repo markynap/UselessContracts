@@ -100,6 +100,12 @@ contract EclipseGenerator is ReentrancyGuard {
         }
     }
     
+    function decayAll() external {
+        for (uint i = 0; i < eclipseContractList.length; i++) {      
+            _decay(eclipseContractList[i]);
+        }
+    }
+    
     //////////////////////////////////////////
     ///////    MASTER FUNCTIONS    ///////////
     //////////////////////////////////////////
@@ -221,6 +227,10 @@ contract EclipseGenerator is ReentrancyGuard {
     
     function geteclipseContractList() external view returns (address[] memory) {
         return eclipseContractList;
+    }
+    
+    function geteclipseContractListLength() external view returns (uint256) {
+        return eclipseContractList.length;
     }
     
     receive() external payable {}
