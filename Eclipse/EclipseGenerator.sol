@@ -72,21 +72,21 @@ contract EclipseGenerator is ReentrancyGuard {
     //////////////////////////////////////////
     
     
-    function createEclipse(address _EclipseOwner, address _tokenToList) external payable nonReentrant {
-        require(!_isContract(msg.sender) && tx.origin == msg.sender, 'No Proxies Allowed');
+    function createEclipse(address _tokenToList) external payable nonReentrant {
+        require(tx.origin == msg.sender, 'No Proxies Allowed');
         uint256 cost = _fetcher.creationCost();
         require(msg.value >= cost, 'Cost Not Met');
         // create proxy
         address hill = Proxyable(payable(_parentProxy)).createProxy();
         // initialize proxy
-        IEclipse(payable(hill)).bind(_EclipseOwner, _tokenToList);
+        IEclipse(payable(hill)).bind(_tokenToList);
         // add to database
         eclipseContracts[address(hill)].isVerified = true;
         eclipseContracts[address(hill)].tokenRepresentative = _tokenToList;
         tokenToEclipse[_tokenToList] = address(hill);
         eclipseContractList.push(address(hill));
         _withdraw();
-        emit EclipseCreated(address(hill), _tokenToList, _EclipseOwner);
+        emit EclipseCreated(address(hill), _tokenToList);
     }
     
     function iterateDecay(uint256 iterations) external {
@@ -235,23 +235,12 @@ contract EclipseGenerator is ReentrancyGuard {
     
     receive() external payable {}
     
-    /**
-     * @notice Check if an address is a contract
-     */
-    function _isContract(address _addr) internal view returns (bool) {
-        uint256 size;
-        assembly {
-            size := extcodesize(_addr)
-        }
-        return size > 0;
-    }
-    
     //////////////////////////////////////////
     ///////         EVENTS         ///////////
     //////////////////////////////////////////
     
     
-    event EclipseCreated(address Eclipse, address tokenListed, address eclipseLister);
+    event EclipseCreated(address Eclipse, address tokenListed);
     event TransferOwnership(address newOwner);
 
 }
