@@ -19,9 +19,7 @@ import "./Proxyable.sol";
 contract EclipseData {
     
     mapping ( address => bool ) canModerate;
-    address _tokenOwner;
     address _useless;
-    address _pcsRouter;
     address _tokenRep;
     bool receiveDisabled;
     EclipseDataFetcher _fetcher;
@@ -32,39 +30,24 @@ contract EclipseData {
 contract Eclipse is EclipseData, IEclipse, Proxyable {
     
     using SafeMath for uint256; 
-    
-    modifier isModerator() {require(canModerate[msg.sender], 'Only Moderator'); _; }
-    modifier isTokenOwner() {require(msg.sender == _tokenOwner, 'Only Owner'); _; }
-    
-    constructor(address tokenOwner, address _token) {
+        
+    constructor(address _token) {
         require(msg.sender == 0xf5f91867eBA4F7439997C6D90377557aA612fCF5);
-        _bind(tokenOwner,_token);
+        _bind(_token);
     }
     
-    function bind(address tokenOwner, address _token) external override {
-        _bind(tokenOwner, _token);
+    function bind(address _token) external override {
+        _bind(_token);
     }
     
-    function _bind(address tokenOwner, address _token) private {
+    function _bind(address _token) private {
         require(_useless == address(0), 'Proxy Already Bound');
-        canModerate[tokenOwner] = true;
-        _tokenOwner = tokenOwner;
         _tokenRep = _token;
         _useless = 0x2cd2664Ce5639e46c6a3125257361e01d0213657;
-        _pcsRouter = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
         _fetcher = EclipseDataFetcher(0x10ED43C718714eb63d5aA57B78B54704E256024E);
         lastDecay = block.number;
     }
-    
-    //////////////////////////////////////////
-    ///////     OWNER FUNCTIONS    ///////////
-    //////////////////////////////////////////
-    
-    function setModerator(address mod, bool canMod) external isTokenOwner {
-        canModerate[mod] = canMod;
-        emit SetModerator(mod, canMod);
-    }
-    
+
     //////////////////////////////////////////
     ///////    MASTER FUNCTIONS    ///////////
     //////////////////////////////////////////
@@ -73,6 +56,7 @@ contract Eclipse is EclipseData, IEclipse, Proxyable {
         if (lastDecay + _fetcher.getDecayPeriod() > block.number) return;
         lastDecay = block.number;
         uint256 bal = IERC20(_useless).balanceOf(address(this));
+        if (bal == 0) { return; }
         uint256 decayFee = _fetcher.getDecayFee();
         uint256 minimum = _fetcher.getUselessMinimumToDecayFullBalance();
         uint256 takeBal = bal <= minimum ? bal : bal.div(decayFee);
@@ -95,19 +79,23 @@ contract Eclipse is EclipseData, IEclipse, Proxyable {
     //////////////////////////////////////////
     
     
-    function liquidateToken(address token) external isModerator {
+    function liquidateToken(address token) external {
+        require(token != _useless, 'Cannot Sell USELESS Tokens');
         liquidate(token, address(_pcsRouter));
     }
     
-    function liquidateTokenCustomRouter(address token, address router) external isModerator {
+    function liquidateTokenCustomRouter(address token, address router) external {
+        require(token != _useless, 'Cannot Sell USELESS Tokens');
         liquidate(token, router);
     }
     
-    function swapTokenForUseless(address token) external isModerator {
+    function swapTokenForUseless(address token) external {
+        require(token != _useless, 'Cannot Sell USELESS Tokens');
         _swapTokenForUseless(token, _pcsRouter);
     }
     
-    function swapTokenForUselessCustomRouter(address token, address router) external isModerator {
+    function swapTokenForUselessCustomRouter(address token, address router) external {
+        require(token != _useless, 'Cannot Sell USELESS Tokens');
         _swapTokenForUseless(token, router);
     }
     
